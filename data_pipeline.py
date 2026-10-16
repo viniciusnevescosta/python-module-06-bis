@@ -1,11 +1,14 @@
+import csv
+import io
+import json
 from typing import Any, Protocol
 
 from data_processor import (
-    DataProcessor,
     LogProcessor,
     NumericProcessor,
     TextProcessor,
 )
+from data_stream import DataStream as BaseDataStream
 
 
 class ExportPlugin(Protocol):
@@ -16,42 +19,20 @@ class ExportPlugin(Protocol):
 class CSVExportPlugin:
     def process_output(self, data: list[tuple[int, str]]) -> None:
         print("CSV Output:")
-        print(",".join(value for _, value in data))
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator="\n")
+        writer.writerow([value for _, value in data])
+        print(buffer.getvalue(), end="")
 
 
 class JSONExportPlugin:
-    @staticmethod
-    def _escape(value: str) -> str:
-        return value.replace("\\", "\\\\").replace('"', '\\"')
-
     def process_output(self, data: list[tuple[int, str]]) -> None:
-        fields = [
-            f'"item_{rank}": "{self._escape(value)}"'
-            for rank, value in data
-        ]
+        fields = {f"item_{rank}": value for rank, value in data}
         print("JSON Output:")
-        print("{" + ", ".join(fields) + "}")
+        print(json.dumps(fields, ensure_ascii=False))
 
 
-class DataStream:
-    def __init__(self) -> None:
-        self._processors: list[DataProcessor] = []
-
-    def register_processor(self, proc: DataProcessor) -> None:
-        self._processors.append(proc)
-
-    def process_stream(self, stream: list[Any]) -> None:
-        for element in stream:
-            for processor in self._processors:
-                if processor.validate(element):
-                    processor.ingest(element)
-                    break
-            else:
-                print(
-                    "DataStream error - Can't process element in stream: "
-                    f"{element}"
-                )
-
+class DataStream(BaseDataStream):
     def output_pipeline(self, nb: int, plugin: ExportPlugin) -> None:
         for processor in self._processors:
             output: list[tuple[int, str]] = []
@@ -61,18 +42,6 @@ class DataStream:
                 except IndexError:
                     break
             plugin.process_output(output)
-
-    def print_processors_stats(self) -> None:
-        print("== DataStream statistics ==")
-        if not self._processors:
-            print("No processor found, no data")
-            return
-        for processor in self._processors:
-            print(
-                f"{processor.name}: total {processor.total_processed()} "
-                f"items processed, remaining {processor.remaining()} "
-                "on processor"
-            )
 
 
 def main() -> None:

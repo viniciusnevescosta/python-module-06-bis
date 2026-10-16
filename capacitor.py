@@ -7,18 +7,13 @@ def main() -> None:
     evolved = factory.create_evolved()
 
     print("Testing Creature with transform capability")
-    print(" base:")
-    print(base.describe())
-    print(base.attack())
-    print(base.transform())
-    print(base.attack())
-    print(base.revert())
-    print(" evolved:")
-    print(evolved.describe())
-    print(evolved.attack())
-    print(evolved.transform())
-    print(evolved.attack())
-    print(evolved.revert())
+    for label, creature in (("base", base), ("evolved", evolved)):
+        print(f" {label}:")
+        print(creature.describe())
+        print(creature.attack())
+        print(creature.transform())
+        print(creature.attack())
+        print(creature.revert())
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Union
+from typing import Any
 
 
-Number = Union[int, float]
-NumericData = Union[Number, list[Number]]
-TextData = Union[str, list[str]]
+Number = int | float
+NumericData = Number | list[Number]
+TextData = str | list[str]
 LogEntry = dict[str, str]
-LogData = Union[LogEntry, list[LogEntry]]
+LogData = LogEntry | list[LogEntry]
 
 
 class DataProcessor(ABC):

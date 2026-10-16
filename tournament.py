@@ -10,7 +10,7 @@ from ex4 import (
 Opponent = tuple[CreatureFactory, BattleStrategy]
 
 
-def tournament(opponents: list[Opponent]) -> None:
+def battle(opponents: list[Opponent]) -> None:
     print("*** Tournament ***")
     print(f"{len(opponents)} opponents involved")
     try:
@@ -33,18 +33,22 @@ def tournament(opponents: list[Opponent]) -> None:
         print(f"Battle error, aborting tournament: {error}")
 
 
+def tournament(opponents: list[Opponent]) -> None:
+    battle(opponents)
+
+
 def main() -> None:
     flame = FlameFactory()
     transform = TransformCreatureFactory()
     print("Tournament 0 (basic)")
     print(" [ (Flameling+Normal), (Shiftling+Aggressive) ]")
-    tournament([
+    battle([
         (flame, NormalStrategy()),
         (transform, AggressiveStrategy()),
     ])
     print("\nTournament 1 (error)")
     print(" [ (Shiftling+Aggressive), (Flameling+Aggressive) ]")
-    tournament([
+    battle([
         (transform, AggressiveStrategy()),
         (flame, AggressiveStrategy()),
     ])
