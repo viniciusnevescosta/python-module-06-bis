@@ -1,6 +1,3 @@
-import csv
-import io
-import json
 from typing import Any, Protocol
 
 from data_processor import (
@@ -19,17 +16,27 @@ class ExportPlugin(Protocol):
 class CSVExportPlugin:
     def process_output(self, data: list[tuple[int, str]]) -> None:
         print("CSV Output:")
-        buffer = io.StringIO()
-        writer = csv.writer(buffer, lineterminator="\n")
-        writer.writerow([value for _, value in data])
-        print(buffer.getvalue(), end="")
+        fields = []
+        for _, value in data:
+            if any(character in value for character in (',', '"', '\n', '\r')):
+                value = '"' + value.replace('"', '""') + '"'
+            fields.append(value)
+        print(",".join(fields))
 
 
 class JSONExportPlugin:
+    @staticmethod
+    def _escape(value: str) -> str:
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        for code in range(32):
+            escaped = escaped.replace(chr(code), f"\\u{code:04x}")
+        return escaped
+
     def process_output(self, data: list[tuple[int, str]]) -> None:
-        fields = {f"item_{rank}": value for rank, value in data}
+        fields = [f'"item_{rank}": "{self._escape(value)}"'
+                  for rank, value in data]
         print("JSON Output:")
-        print(json.dumps(fields, ensure_ascii=False))
+        print("{" + ", ".join(fields) + "}")
 
 
 class DataStream(BaseDataStream):

@@ -48,7 +48,7 @@ class NumericProcessor(DataProcessor):
         if type(data) in (int, float):
             return True
         if type(data) is list:
-            return bool(data) and all(
+            return all(
                 type(item) in (int, float) for item in data
             )
         return False
@@ -69,7 +69,7 @@ class TextProcessor(DataProcessor):
         if isinstance(data, str):
             return True
         if type(data) is list:
-            return bool(data) and all(isinstance(item, str) for item in data)
+            return all(isinstance(item, str) for item in data)
         return False
 
     def ingest(self, data: TextData) -> None:
@@ -87,15 +87,15 @@ class LogProcessor(DataProcessor):
     def _valid_entry(self, data: Any) -> bool:
         return (
             type(data) is dict
-            and isinstance(data.get("log_level"), str)
-            and isinstance(data.get("log_message"), str)
+            and all(isinstance(key, str) and isinstance(value, str)
+                    for key, value in data.items())
         )
 
     def validate(self, data: Any) -> bool:
         if self._valid_entry(data):
             return True
         if type(data) is list:
-            return bool(data) and all(self._valid_entry(item) for item in data)
+            return all(self._valid_entry(item) for item in data)
         return False
 
     def ingest(self, data: LogData) -> None:
@@ -103,7 +103,12 @@ class LogProcessor(DataProcessor):
             raise TypeError("Improper log data")
         values = data if isinstance(data, list) else [data]
         for value in values:
-            self._store(f"{value['log_level']}: {value['log_message']}")
+            if "log_level" in value and "log_message" in value:
+                message = f"{value['log_level']}: {value['log_message']}"
+            else:
+                message = ", ".join(f"{key}: {text}"
+                                    for key, text in value.items())
+            self._store(message)
 
 
 def main() -> None:
@@ -114,7 +119,7 @@ def main() -> None:
     print(f" Trying to validate input 'Hello': {numeric.validate('Hello')}")
     print(" Test invalid ingestion of string 'foo' without prior validation:")
     try:
-        numeric.ingest("foo")  # type: ignore[arg-type]
+        numeric.ingest("foo")
     except TypeError as error:
         print(f" Got exception: {error}")
     numbers: list[Number] = [1, 2, 3, 4, 5]
@@ -129,6 +134,7 @@ def main() -> None:
     print("\nTesting Text Processor...")
     print(f" Trying to validate input '42': {text.validate(42)}")
     words = ["Hello", "Nexus", "World"]
+    print(f" Trying to validate input {words}: {text.validate(words)}")
     print(f" Processing data: {words}")
     text.ingest(words)
     print(" Extracting 1 value...")
@@ -142,6 +148,7 @@ def main() -> None:
     ]
     print("\nTesting Log Processor...")
     print(f" Trying to validate input 'Hello': {logs.validate('Hello')}")
+    print(f" Trying to validate input {entries}: {logs.validate(entries)}")
     print(f" Processing data: {entries}")
     logs.ingest(entries)
     print(" Extracting 2 values...")
